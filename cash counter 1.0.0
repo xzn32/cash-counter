@@ -1,4 +1,5 @@
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.0.1"
+print(update worked)
 import tkinter as tk
 from tkinter import ttk, simpledialog, messagebox
 import csv
