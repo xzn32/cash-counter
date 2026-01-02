@@ -255,7 +255,7 @@ def apply_update(new_code):
     subprocess.Popen(restart_cmd)
     sys.exit()
 
-UPDATE_URL = "https://github.com/xzn32/cash-counter.git"
+UPDATE_URL = "https://raw.githubusercontent.com/xzn32/cash-counter/main/cash%20counter%201.0.0"
 
 
 today_rows = []
