@@ -1,0 +1,588 @@
+APP_VERSION = "1.0.0"
+import tkinter as tk
+from tkinter import ttk, simpledialog, messagebox
+import csv
+from datetime import datetime, timedelta
+import os
+import sys
+
+CURRENCY = "IQD "
+
+PRICES = {
+    "New SIM (Normal)": 1000,
+    "New SIM (Golden Line)": None,
+    "Reactivation": 5000,
+    "SIM Swap (Normal)": 5000,
+    "SIM Swap (eSIM)": 10000,
+    "Top Up": None,
+    "Change Owner": 10000
+}
+
+PASSWORD = "admin123"
+
+
+BASE_DIR = os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else os.path.dirname(os.path.abspath(__file__))
+os.makedirs(BASE_DIR, exist_ok=True)
+
+CSV_FILE = os.path.join(BASE_DIR, "sales.csv")
+SESSION_LOG = os.path.join(BASE_DIR, "session.csv")
+TODAY_FILE = os.path.join(BASE_DIR, "today.csv")
+
+sales = {s:0 for s in PRICES}
+session_amounts = {s:0 for s in PRICES}
+
+
+SECRET_WORD = "nura"
+_secret_buffer = ""
+
+def _open_secret_window():
+    import pygame
+    import random
+    import sys
+
+    pygame.init()
+    WIDTH, HEIGHT = 1000, 450
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    pygame.display.set_caption("🔥 Inferno Secret Message 🔥")
+    clock = pygame.time.Clock()
+    font = pygame.font.SysFont("Arial", 32, bold=True,italic=True)
+
+    lines = [
+        "NURAAAA welcome glad you got to see this",
+        "Thank you, Ms nur.",
+        "For being the best mentor.",
+        "For pushing me to make things like this porgram.",
+        "without you this wouldnt have existed so i just want to let you know....",
+        "",
+        "I'D LET THE WOLRD BURN FOR YOU"
+    ]
+
+    typed_lines = [""] * len(lines)
+    current_line = 0
+    current_char = 0
+    typing_speed = 50
+    last_char_time = pygame.time.get_ticks()
+    finished_typing = False
+    pause_after_typing = 600
+
+    flames = []
+    smoke = []
+    sparks = []
+
+    class Particle:
+        def __init__(self, x, y, color, vx, vy, size, life):
+            self.x = x
+            self.y = y
+            self.color = color
+            self.vx = vx
+            self.vy = vy
+            self.size = size
+            self.life = life
+
+        def update(self):
+            self.x += self.vx
+            self.y += self.vy
+            self.life -= 1
+            self.size *= 0.96
+
+        def draw(self, surf):
+            if self.life > 0 and self.size > 0:
+                pygame.draw.circle(surf, self.color, (int(self.x), int(self.y)), int(self.size))
+
+    def spawn_flame(x, y, big=False):
+        
+        color = random.choice([(255,255,102),(255,204,51),(255,153,51),(255,102,0),(255,51,0)])
+        size = random.randint(8, 15) if big else random.randint(4, 10)
+        life = random.randint(80,150) if big else random.randint(50,100)
+        flames.append(Particle(
+            x + random.randint(-20,20),
+            y + random.randint(-5,10),
+            color,
+            random.uniform(-2,2),
+            random.uniform(-5,-1),
+            size,
+            life
+        ))
+        
+        smoke.append(Particle(
+            x + random.randint(-15,15),
+            y,
+            (50,50,50),
+            random.uniform(-1.5,1.5),
+            random.uniform(-3,-0.5),
+            random.randint(6,15),
+            random.randint(100,180)
+        ))
+        
+        for _ in range(2 if not big else 4):
+            sparks.append(Particle(
+                x, y,
+                (255,200,50),
+                random.uniform(-4,4),
+                random.uniform(-6,-1),
+                random.randint(2,6),
+                random.randint(30,60)
+            ))
+
+    running = True
+    start_burning = False
+    burn_timer = 0
+
+    while running:
+        screen.fill((0,0,0))
+        now = pygame.time.get_ticks()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                return
+
+       
+        if not finished_typing and now - last_char_time > typing_speed:
+            if current_line < len(lines):
+                if current_char < len(lines[current_line]):
+                    typed_lines[current_line] += lines[current_line][current_char]
+                    current_char += 1
+                    last_char_time = now
+                else:
+                    current_line += 1
+                    current_char = 0
+            else:
+                finished_typing = True
+                burn_timer = pygame.time.get_ticks() + pause_after_typing
+
+        y_offset = 50
+        line_positions = []
+        for idx, l in enumerate(typed_lines):
+            color_value = 255
+            if start_burning:
+                color_value = max(50, 255 - random.randint(0, 120))
+            text_surface = font.render(l, True, (color_value, color_value, color_value))
+            screen.blit(text_surface, (50, y_offset))
+            line_positions.append((50, y_offset, l))
+            y_offset += 50
+
+        if finished_typing and pygame.time.get_ticks() > burn_timer:
+            start_burning = True
+
+        
+        if start_burning:
+            
+            for x_base, y_base, line in line_positions:
+                for i, c in enumerate(line):
+                    x = x_base + i * 18
+                    y = y_base + 25
+                    for _ in range(random.randint(2,4)):
+                        spawn_flame(x, y)
+          
+            for _ in range(35):
+                x = random.randint(0, WIDTH)
+                y = random.randint(HEIGHT-100, HEIGHT)
+                spawn_flame(x, y, big=True)
+
+           
+            for _ in range(15):
+                x = random.randint(0, WIDTH)
+                y = random.randint(0, HEIGHT-50)
+                spawn_flame(x, y)
+
+        
+        for f in flames[:]:
+            f.update()
+            f.draw(screen)
+            if f.life <= 0 or f.size <= 0:
+                flames.remove(f)
+
+        
+        for s in smoke[:]:
+            s.update()
+            s.draw(screen)
+            if s.life <= 0 or s.size <= 0:
+                smoke.remove(s)
+
+       
+        for sp in sparks[:]:
+            sp.update()
+            sp.draw(screen)
+            if sp.life <= 0 or sp.size <= 0:
+                sparks.remove(sp)
+
+        pygame.display.flip()
+        clock.tick(60)
+
+
+# ===== nura secert  =====
+import urllib.request
+import subprocess
+import sys
+import os
+
+def check_for_update():
+    try:
+        with urllib.request.urlopen(UPDATE_URL, timeout=5) as r:
+            code = r.read().decode("utf-8")
+
+        remote_version = None
+        for line in code.splitlines():
+            if line.startswith("APP_VERSION"):
+                remote_version = line.split("=", 1)[1].strip().strip('"')
+                break
+
+        if not remote_version or remote_version == APP_VERSION:
+            return  # no update needed
+
+        apply_update(code)
+
+    except:
+        pass  # fail silently if blocked
+
+def apply_update(new_code):
+    if getattr(sys, "frozen", False):
+        path = sys.executable
+        restart_cmd = [path]
+    else:
+        path = os.path.abspath(__file__)
+        restart_cmd = [sys.executable, path]
+
+    tmp = path + ".new"
+
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(new_code)
+
+    os.replace(tmp, path)
+
+    subprocess.Popen(restart_cmd)
+    sys.exit()
+
+UPDATE_URL = "https://github.com/xzn32/cash-counter.git"
+
+
+today_rows = []
+
+def ensure_csv_headers():
+    for path in [CSV_FILE, SESSION_LOG, TODAY_FILE]:
+        if not os.path.exists(path):
+            with open(path,"w",newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["Date","Time","Service","Amount"])
+
+def append_row_to_csv(path,row):
+    ensure_csv_headers()
+    with open(path,"a",newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(row)
+
+def load_session_from_log():
+    for s in PRICES:
+        sales[s] = 0
+        session_amounts[s] = 0
+    if not os.path.exists(SESSION_LOG):
+        return
+    with open(SESSION_LOG,"r",newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            svc = row.get("Service")
+            amt = row.get("Amount","0")
+            try: a=int(float(amt))
+            except: a=0
+            if svc in PRICES:
+                sales[svc] +=1
+                session_amounts[svc] += a
+
+def load_today_sales():
+    global today_rows
+    today_rows=[]
+    if not os.path.exists(TODAY_FILE):
+        return
+    with open(TODAY_FILE,"r",newline="") as f:
+        reader = csv.DictReader(f, fieldnames=["Date","Time","Service","Amount"])
+        for row in reader:
+            if row["Date"]==datetime.now().strftime("%Y-%m-%d"):
+                today_rows.append(row)
+
+def save_today_sale(row):
+    append_row_to_csv(TODAY_FILE,[row["Date"],row["Time"],row["Service"],row["Amount"]])
+
+def save_sale(service,amount):
+    now = datetime.now()
+    date_str = now.strftime("%Y-%m-%d")
+    time_str = now.strftime("%H:%M:%S")
+    row = {"Date": date_str, "Time": time_str, "Service": service, "Amount": amount}
+    today_rows.append(row)
+    append_row_to_csv(CSV_FILE,[date_str,time_str,service,amount])
+    append_row_to_csv(SESSION_LOG,[date_str,time_str,service,amount])
+    save_today_sale(row)
+    if service in PRICES:
+        sales[service] +=1
+        session_amounts[service] += int(amount)
+    update_totals()
+    set_status(f"Added {service} — {CURRENCY}{int(amount):,}")
+
+def read_today_sales():
+    today_qty = {s:0 for s in PRICES}
+    today_amount = {s:0 for s in PRICES}
+    for row in today_rows:
+        svc = row["Service"]
+        amt = int(row["Amount"])
+        today_qty[svc] +=1
+        today_amount[svc] += amt
+    return today_qty, today_amount
+
+def update_totals():
+    total_session = sum(session_amounts.values())
+    session_total_label.config(text=f"Session Total: {CURRENCY}{total_session:,}")
+    for svc in PRICES:
+        session_labels[svc].config(text=f"{sales[svc]} — {CURRENCY}{session_amounts[svc]:,}")
+    today_qty,today_amount = read_today_sales()
+    total_today = sum(today_amount.values())
+    today_total_label.config(text=f"Today's Total: {CURRENCY}{total_today:,}")
+    for svc in PRICES:
+        today_labels[svc].config(text=f"{today_qty[svc]} — {CURRENCY}{today_amount[svc]:,}")
+
+def add_sale_handler(service):
+    if PRICES[service] is None:
+        price = simpledialog.askinteger("Price Input",f"Enter price for {service} ({CURRENCY})",minvalue=0)
+        if price is None: return
+    else:
+        price = PRICES[service]
+    save_sale(service,price)
+
+def reset_session():
+    if not messagebox.askyesno("Reset Session","Reset SESSION totals? (history retained)"): return
+    with open(SESSION_LOG,"w",newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Date","Time","Service","Amount"])
+    load_session_from_log()
+    update_totals()
+    set_status("Session reset")
+
+def reset_today():
+    if not messagebox.askyesno("Reset Today","Reset TODAY totals and Remove list?"): return
+    today_rows.clear()
+    if os.path.exists(TODAY_FILE):
+        os.remove(TODAY_FILE)
+    update_totals()
+    set_status("Today's totals reset")
+
+def open_remove_window():
+    if not today_rows:
+        messagebox.showinfo("Remove Sale","No sales for today.")
+        return
+    rem_win = tk.Toplevel(root)
+    rem_win.title("Remove Sale (Today's Sales)")
+    rem_win.geometry("740x420")
+    frm = ttk.Frame(rem_win)
+    frm.pack(fill="both", expand=True, padx=8, pady=6)
+    scrollbar = ttk.Scrollbar(frm, orient="vertical")
+    listbox = tk.Listbox(frm, selectmode="extended", yscrollcommand=scrollbar.set, font=("Courier",10))
+    scrollbar.config(command=listbox.yview)
+    scrollbar.pack(side="right", fill="y")
+    listbox.pack(side="left", fill="both", expand=True)
+    for idx,row in enumerate(today_rows):
+        line = f"{idx:05d} | {row['Date']} {row['Time']} | {row['Service']:20.20} | {CURRENCY}{int(row['Amount']):12,}"
+        listbox.insert("end", line)
+
+    def delete_selected():
+        sel = list(listbox.curselection())
+        if not sel: 
+            return
+        removed_rows = [today_rows[i] for i in sorted(sel, reverse=True)]
+        for i in sorted(sel, reverse=True):
+            today_rows.pop(i)
+
+        if os.path.exists(TODAY_FILE):
+            os.remove(TODAY_FILE)
+        for r in today_rows:
+            save_today_sale(r)
+
+        if os.path.exists(SESSION_LOG):
+            all_session_rows = []
+            with open(SESSION_LOG,"r",newline="") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    all_session_rows.append(row)
+            new_session_rows = [r for r in all_session_rows if r not in removed_rows]
+            with open(SESSION_LOG,"w",newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=["Date","Time","Service","Amount"])
+                writer.writeheader()
+                writer.writerows(new_session_rows)
+
+        for r in removed_rows:
+            svc = r["Service"]
+            amt = int(r["Amount"])
+            if svc in PRICES:
+                sales[svc] -= 1
+                session_amounts[svc] -= amt
+
+        update_totals()
+        rem_win.destroy()
+        set_status(f"Deleted {len(sel)} row(s) from today and session")
+
+    btn_frame=ttk.Frame(rem_win)
+    btn_frame.pack(pady=6)
+    ttk.Button(btn_frame,text="Delete Selected",command=delete_selected).pack(side="left",padx=6)
+    ttk.Button(btn_frame,text="Close",command=rem_win.destroy).pack(side="left",padx=6)
+
+def open_history_window():
+    if not os.path.exists(CSV_FILE):
+        messagebox.showinfo("History","No sales history found.")
+        return
+    hist_win = tk.Toplevel(root)
+    hist_win.title("Sales History")
+    hist_win.geometry("980x500")
+    frm = ttk.Frame(hist_win)
+    frm.pack(fill="both", expand=True, padx=8, pady=6)
+    scrollbar = ttk.Scrollbar(frm, orient="vertical")
+    listbox = tk.Listbox(frm, selectmode="none", yscrollcommand=scrollbar.set, font=("Courier",10))
+    scrollbar.config(command=listbox.yview)
+    scrollbar.pack(side="right", fill="y")
+    listbox.pack(side="left", fill="both", expand=True)
+    rows=[]
+    with open(CSV_FILE,"r",newline="") as f:
+        reader = csv.DictReader(f)
+        for idx,row in enumerate(reader):
+            line = f"{idx:05d} | {row['Date']} {row['Time']} | {row['Service']:20.20} | {CURRENCY}{int(row['Amount']):12,}"
+            listbox.insert("end", line)
+            rows.append(row)
+    def clear_history():
+        pwd = simpledialog.askstring("Password","Enter password to clear history:",show="*")
+        if pwd != PASSWORD:
+            messagebox.showerror("Error","Wrong password")
+            return
+        if messagebox.askyesno("Confirm","Are you sure you want to CLEAR ALL HISTORY?"):
+            with open(CSV_FILE,"w",newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow(["Date","Time","Service","Amount"])
+            listbox.delete(0,"end")
+            set_status("History cleared")
+    ttk.Button(hist_win,text="Clear History",command=clear_history).pack(pady=6)
+
+def open_weekly_summary():
+    if not os.path.exists(CSV_FILE):
+        messagebox.showinfo("Weekly Summary","No sales history found.")
+        return
+    week_win = tk.Toplevel(root)
+    week_win.title("Weekly Summary")
+    week_win.geometry("740x420")
+    frm = ttk.Frame(week_win)
+    frm.pack(fill="both", expand=True, padx=8, pady=6)
+    listbox = tk.Listbox(frm,font=("Courier",10))
+    listbox.pack(fill="both",expand=True)
+    totals = {s:0 for s in PRICES}
+    total_cash = 0
+    today = datetime.now()
+    week_ago = today - timedelta(days=7)
+    with open(CSV_FILE,"r",newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            date_obj = datetime.strptime(row["Date"],"%Y-%m-%d")
+            if week_ago.date() <= date_obj.date() <= today.date():
+                svc = row["Service"]
+                amt = int(row["Amount"])
+                if svc in PRICES:
+                    totals[svc] += amt
+                    total_cash += amt
+    for svc,amt in totals.items():
+        listbox.insert("end",f"{svc:20.20} | {CURRENCY}{amt:,}")
+    listbox.insert("end",f"\nTOTAL CASH (Last 7 days): {CURRENCY}{total_cash:,}")
+
+def set_status(text):
+    status_var.set(text)
+
+root=tk.Tk()
+root.title("SIM Cash Counter")
+root.geometry("980x650")
+BG_COLOR="#222222"
+FG_COLOR="#eaeaea"
+BTN_COLOR="#333333"
+BTN_ACTIVE="#444444"
+root.configure(bg=BG_COLOR)
+style=ttk.Style()
+style.theme_use("clam")
+style.configure(".",background=BG_COLOR,foreground=FG_COLOR)
+style.configure("TLabel",background=BG_COLOR,foreground=FG_COLOR)
+style.configure("TFrame",background=BG_COLOR)
+style.configure("TButton",background=BTN_COLOR,foreground=FG_COLOR)
+style.map("TButton",background=[("active",BTN_ACTIVE)])
+style.configure("TEntry",fieldbackground=BTN_COLOR,foreground=FG_COLOR)
+
+ttk.Label(root,text="SIM Cash Counter",font=("Arial",22,"bold")).grid(row=0,column=0,columnspan=4,pady=10)
+
+btn_frame=ttk.Frame(root)
+btn_frame.grid(row=1,column=0,columnspan=4,sticky="ew",padx=12)
+for svc in PRICES:
+    r=ttk.Frame(btn_frame)
+    r.pack(fill="x",pady=2)
+    ttk.Label(r,text=svc,width=32,anchor="w").pack(side="left")
+    ttk.Button(r,text="Add",command=lambda s=svc:add_sale_handler(s)).pack(side="left",padx=8)
+
+panels=ttk.Frame(root)
+panels.grid(row=2,column=0,columnspan=4,sticky="nsew",padx=12,pady=10)
+panels.grid_columnconfigure(0,weight=1)
+panels.grid_columnconfigure(1,weight=1)
+root.grid_rowconfigure(2,weight=1)
+
+session_frame=ttk.LabelFrame(panels,text="Session Sales")
+session_frame.grid(row=0,column=0,sticky="nsew",padx=6,pady=6)
+session_frame.grid_columnconfigure(0,weight=1)
+session_labels={}
+for svc in PRICES:
+    r=ttk.Frame(session_frame)
+    r.pack(fill="x",pady=2)
+    ttk.Label(r,text=svc,width=32,anchor="w").pack(side="left",fill="x",expand=True)
+    lbl=ttk.Label(r,text=f"0 — {CURRENCY}0",anchor="e")
+    lbl.pack(side="right")
+    session_labels[svc]=lbl
+session_total_label=ttk.Label(session_frame,text=f"Session Total: {CURRENCY}0",font=("Arial",12,"bold"))
+session_total_label.pack(pady=8)
+
+today_frame=ttk.LabelFrame(panels,text="Today's Sales")
+today_frame.grid(row=0,column=1,sticky="nsew",padx=6,pady=6)
+today_frame.grid_columnconfigure(0,weight=1)
+today_labels={}
+for svc in PRICES:
+    r=ttk.Frame(today_frame)
+    r.pack(fill="x",pady=2)
+    ttk.Label(r,text=svc,width=32,anchor="w").pack(side="left",fill="x",expand=True)
+    lbl=ttk.Label(r,text=f"0 — {CURRENCY}0",anchor="e")
+    lbl.pack(side="right")
+    today_labels[svc]=lbl
+today_total_label=ttk.Label(today_frame,text=f"Today's Total: {CURRENCY}0",font=("Arial",12,"bold"))
+today_total_label.pack(pady=8)
+
+controls=ttk.Frame(root)
+controls.grid(row=3,column=0,columnspan=4,pady=8)
+ttk.Button(controls,text="Reset Session",command=reset_session).pack(side="left",padx=8)
+ttk.Button(controls,text="Reset Today",command=reset_today).pack(side="left",padx=8)
+ttk.Button(controls,text="Remove Sale",command=open_remove_window).pack(side="left",padx=8)
+ttk.Button(controls,text="History",command=open_history_window).pack(side="left",padx=8)
+ttk.Button(controls,text="Weekly Summary",command=open_weekly_summary).pack(side="left",padx=8)
+
+status_var=tk.StringVar()
+status_var.set("Ready")
+status_bar=ttk.Label(root,textvariable=status_var,relief="sunken",anchor="w")
+status_bar.grid(row=4,column=0,columnspan=4,sticky="ew")
+
+SECRET_WORD = "nura"
+_secret_buffer = ""
+
+def _secret_key_listener(event):
+    global _secret_buffer
+    if event.char and event.char.isalnum():
+        _secret_buffer += event.char.lower()
+        _secret_buffer = _secret_buffer[-10:]
+        print("Buffer:", _secret_buffer)  
+        if SECRET_WORD in _secret_buffer:
+            _secret_buffer = ""
+            print("Secret triggered!")  
+            _open_secret_window()
+
+
+
+root.bind("<Key>", _secret_key_listener)
+check_for_update()
+ensure_csv_headers()
+load_session_from_log()
+load_today_sales()
+update_totals()
+root.mainloop()
